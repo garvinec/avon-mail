@@ -6,14 +6,14 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/get")
+router = APIRouter()
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
-@router.get("/inbox-emails")
-def get_inbox_emails():
+@router.get("/sync-mailbox")
+async def sync_mailbox():
     """
     Retrieves emails from the user's Gmail inbox.
     Returns a list of email messages with basic information.
