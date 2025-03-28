@@ -2,13 +2,13 @@
 
 An AI-powered job searching mailbox that helps sort your emails and automatically track your job applications.
 
-## backend
+## Backend
 
-FastAPI
-Gmail API
+- FastAPI
+- Gmail API
 
-## frontend
+## Frontend
 
-React
-Next.js
-Typescript
+- React
+- Next.js
+- Typescript
