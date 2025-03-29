@@ -1,39 +1,19 @@
-import os.path
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from fastapi import APIRouter
+from googleapiclient.errors import HttpError
+from .utils import get_read_gmail_service
 
 router = APIRouter()
-
-# If modifying these scopes, delete the file token.json.
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
 @router.get("/sync-mailbox")
 async def sync_mailbox():
     """
+    TODO: Figure out a way to get 1000 - 1500 emails
     Retrieves emails from the user's Gmail inbox (For first time sync).
     Returns a list of email messages with basic information.
     """
-    creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
-
     try:
-        service = build("gmail", "v1", credentials=creds)
+        service = get_read_gmail_service()
 
         # Get messages from inbox
         results = service.users().messages().list(
@@ -76,25 +56,14 @@ async def sync_mailbox():
 @router.get("/update-mailbox")
 async def update_mailbox():
     """
-    Retrieves emails from the user's Gmail inbox (For subsequent regular syncs).
+    TODO: Think through the logic for this.
+    Retrieves new emails from the user's Gmail inbox whenever user logs in.
+    Logic: Fetch emails that are not read and were sent after the last time the user was online.
+    Alternative: use the Gmail Push Notifications endpoint to get real-time updates.
     Returns a list of email messages with basic information.
     """
-    creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
-
     try:
-        service = build("gmail", "v1", credentials=creds)
+        service = get_read_gmail_service()
 
         # Get messages from inbox
         results = service.users().messages().list(
