@@ -1,4 +1,5 @@
 from api.main import api_router
+from api.auth import auth_middleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -16,6 +17,8 @@ app = FastAPI(
     description="APIs for Avon Mail",
     version="1.0.0"
 )
+
+app.middleware("http")(auth_middleware)
 
 app.add_middleware(
     CORSMiddleware,
