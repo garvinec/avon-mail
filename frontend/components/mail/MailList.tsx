@@ -5,15 +5,13 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mail } from "@/public/TestMailData";
-import { useMail } from "@/hooks/useMail";
 
 interface MailListProps {
   items: Mail[];
+  setMail: (mail: Mail) => void;
 }
 
-export function MailList({ items }: MailListProps) {
-  const [mail, setMail] = useMail();
-
+export function MailList({ items, setMail }: MailListProps) {
   return (
     <ScrollArea className="h-screen">
       <div className="flex flex-col gap-2 p-4 pt-0">
@@ -21,15 +19,9 @@ export function MailList({ items }: MailListProps) {
           <button
             key={item.id}
             className={cn(
-              "flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent",
-              mail.selected === item.id && "bg-muted"
+              "flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent"
             )}
-            onClick={() =>
-              setMail({
-                ...mail,
-                selected: item.id,
-              })
-            }
+            onClick={() => setMail(item)}
           >
             <div className="flex w-full flex-col gap-1">
               <div className="flex items-center">
@@ -39,14 +31,7 @@ export function MailList({ items }: MailListProps) {
                     <span className="flex h-2 w-2 rounded-full bg-blue-600" />
                   )}
                 </div>
-                <div
-                  className={cn(
-                    "ml-auto text-xs",
-                    mail.selected === item.id
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                  )}
-                >
+                <div className={cn("ml-auto text-xs", "text-muted-foreground")}>
                   {formatDistanceToNow(new Date(item.date), {
                     addSuffix: true,
                   })}
