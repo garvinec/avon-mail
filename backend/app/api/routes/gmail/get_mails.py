@@ -1,39 +1,23 @@
-import os.path
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+from fastapi import APIRouter, HTTPException
 from googleapiclient.errors import HttpError
-from fastapi import APIRouter
+from typing import List, Dict, Any
+from .utils import get_read_gmail_service
 
 router = APIRouter()
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-
-@router.get("/sync-mailbox")
+@router.get("/sync-mailbox", response_model=List[Dict[str, Any]])
 async def sync_mailbox():
     """
+    TODO: Implement Async Data Fetching
+    TODO: Implement filter when fetching emails (e.g., exclude marketing emails, etc.)
     Retrieves emails from the user's Gmail inbox (For first time sync).
     Returns a list of email messages with basic information.
     """
-    creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
-
     try:
-        service = build("gmail", "v1", credentials=creds)
+        service = get_read_gmail_service()
+
+        messages = []
 
         # Get messages from inbox
         results = service.users().messages().list(
@@ -42,10 +26,28 @@ async def sync_mailbox():
             maxResults=500
         ).execute()
 
-        messages = results.get("messages", [])
+        messages += results.get("messages", [])
 
-        if not messages:
-            return []
+        next_page_token = results.get("nextPageToken", "")
+
+        while next_page_token:
+            results = service.users().messages().list(
+                userId="me",
+                labelIds=["INBOX"],
+                maxResults=500,
+                pageToken=next_page_token
+            ).execute()
+
+            result_size_estimate = results.get("resultSizeEstimate", 0)
+            messages += results.get("messages", [])
+
+            if len(messages) >= 2000:
+                break
+
+            if result_size_estimate < 500:
+                break
+
+            next_page_token = results.get("nextPageToken", "")
 
         email_list = []
         for message in messages:
@@ -59,47 +61,40 @@ async def sync_mailbox():
             headers = msg["payload"]["headers"]
             email_data = {
                 "id": msg["id"],
+                "threadId": msg.get("threadId", ""),
                 "from": next((h["value"] for h in headers if h["name"] == "From"), ""),
                 "subject": next((h["value"] for h in headers if h["name"] == "Subject"), ""),
                 "date": next((h["value"] for h in headers if h["name"] == "Date"), ""),
-                "snippet": msg.get("snippet", "")
+                "snippet": msg.get("snippet", ""),
+                "labels": msg.get("labelIds", [])
             }
             email_list.append(email_data)
 
         return email_list
 
     except HttpError as error:
-        print(f"An error occurred: {error}")
-        return []
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while syncing mailbox: {str(error)}"
+        )
 
 
-@router.get("/update-mailbox")
+@router.get("/update-mailbox", response_model=List[Dict[str, Any]])
 async def update_mailbox():
     """
-    Retrieves emails from the user's Gmail inbox (For subsequent regular syncs).
+    TODO: Think through the logic for this.
+    Retrieves new emails from the user's Gmail inbox whenever user logs in.
+    Logic: Fetch emails that are not read and were sent after the last time the user was online.
+    Alternative: use the Gmail Push Notifications endpoint to get real-time updates.
     Returns a list of email messages with basic information.
     """
-    creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
-
     try:
-        service = build("gmail", "v1", credentials=creds)
+        service = get_read_gmail_service()
 
         # Get messages from inbox
         results = service.users().messages().list(
             userId="me",
-            labelIds=["INBOX"],
+            labelIds=["INBOX", "UNREAD"],
             maxResults=100
         ).execute()
 
@@ -120,15 +115,19 @@ async def update_mailbox():
             headers = msg["payload"]["headers"]
             email_data = {
                 "id": msg["id"],
+                "threadId": msg.get("threadId", ""),
                 "from": next((h["value"] for h in headers if h["name"] == "From"), ""),
                 "subject": next((h["value"] for h in headers if h["name"] == "Subject"), ""),
                 "date": next((h["value"] for h in headers if h["name"] == "Date"), ""),
-                "snippet": msg.get("snippet", "")
+                "snippet": msg.get("snippet", ""),
+                "labels": msg.get("labelIds", [])
             }
             email_list.append(email_data)
 
         return email_list
 
     except HttpError as error:
-        print(f"An error occurred: {error}")
-        return []
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while updating mailbox: {str(error)}"
+        )
