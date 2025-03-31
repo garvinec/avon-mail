@@ -9,12 +9,15 @@ router = APIRouter()
 @router.get("/sync-mailbox", response_model=List[Dict[str, Any]])
 async def sync_mailbox():
     """
-    TODO: Figure out a way to get 1000 - 1500 emails
+    TODO: Implement Async Data Fetching
+    TODO: Implement filter when fetching emails (e.g., exclude marketing emails, etc.)
     Retrieves emails from the user's Gmail inbox (For first time sync).
     Returns a list of email messages with basic information.
     """
     try:
         service = get_read_gmail_service()
+
+        messages = []
 
         # Get messages from inbox
         results = service.users().messages().list(
@@ -23,10 +26,28 @@ async def sync_mailbox():
             maxResults=500
         ).execute()
 
-        messages = results.get("messages", [])
+        messages += results.get("messages", [])
 
-        if not messages:
-            return []
+        next_page_token = results.get("nextPageToken", "")
+
+        while next_page_token:
+            results = service.users().messages().list(
+                userId="me",
+                labelIds=["INBOX"],
+                maxResults=500,
+                pageToken=next_page_token
+            ).execute()
+
+            result_size_estimate = results.get("resultSizeEstimate", 0)
+            messages += results.get("messages", [])
+
+            if len(messages) >= 2000:
+                break
+
+            if result_size_estimate < 500:
+                break
+
+            next_page_token = results.get("nextPageToken", "")
 
         email_list = []
         for message in messages:

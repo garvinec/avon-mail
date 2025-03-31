@@ -111,7 +111,8 @@ async def delete_email(message_id: str):
 
         return {
             "status": "success",
-            "message": "Email deleted successfully"
+            "message": "Email deleted successfully",
+            "deleted_message_id": message_id
         }
 
     except HttpError as error:
@@ -142,7 +143,8 @@ async def archive_email(message_id: str):
 
         return {
             "status": "success",
-            "message": "Email archived successfully"
+            "message": "Email archived successfully",
+            "archived_message_id": message_id
         }
 
     except HttpError as error:
@@ -173,7 +175,8 @@ async def mark_as_read(message_id: str):
 
         return {
             "status": "success",
-            "message": "Email marked as read"
+            "message": "Email marked as read",
+            "marked_as_read_message_id": message_id
         }
 
     except HttpError as error:
@@ -204,7 +207,8 @@ async def mark_as_unread(message_id: str):
 
         return {
             "status": "success",
-            "message": "Email marked as unread"
+            "message": "Email marked as unread",
+            "marked_as_unread_message_id": message_id
         }
 
     except HttpError as error:
@@ -239,7 +243,8 @@ async def add_label(
 
         return {
             "status": "success",
-            "message": "Label added successfully"
+            "message": "Label added successfully",
+            "added_label_message_id": message_id
         }
 
     except HttpError as error:
@@ -302,14 +307,14 @@ async def forward_email(
 
         # Create forward message
         forward_text = f"""
-{forward_data.get('additional_text', '')}
+        {forward_data.get('additional_text', '')}
 
----------- Forwarded message ---------
-From: {from_email}
-Subject: {subject}
+        ---------- Forwarded message ---------
+        From: {from_email}
+        Subject: {subject}
 
-{message_content}
-"""
+        {message_content}
+        """
 
         message = MIMEText(forward_text)
         message["To"] = forward_data["to"]
@@ -332,7 +337,7 @@ Subject: {subject}
         return {
             "status": "success",
             "message": "Email forwarded successfully",
-            "message_id": sent_message["id"]
+            "forwarded_message_id": sent_message["id"]
         }
 
     except HttpError as error:

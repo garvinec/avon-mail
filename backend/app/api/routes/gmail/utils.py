@@ -14,7 +14,7 @@ SCOPES = [
 
 
 def get_read_gmail_service():
-    """Helper function to authenticate and build the Gmail service."""
+    """Helper function to authenticate and build the Gmail service (Read Only)."""
     creds = None
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES[0])
@@ -33,7 +33,7 @@ def get_read_gmail_service():
 
 
 def get_all_gmail_service():
-    """Helper function to authenticate and build the Gmail service."""
+    """Helper function to authenticate and build the Gmail service (Read and Write)."""
     creds = None
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
