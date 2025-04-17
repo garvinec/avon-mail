@@ -5,7 +5,7 @@ import {
 } from "next/font/google";
 
 import { cn } from "@/lib/utils";
-import { LoginForm } from "@/components/forms/LoginForm";
+import { LoginForm } from "@/components/Forms/LoginForm";
 
 const fontSans = FontSans({ subsets: ["latin"], variable: "--font-sans" });
 const fontSerif = FontSerif({ subsets: ["latin"], variable: "--font-serif" });
