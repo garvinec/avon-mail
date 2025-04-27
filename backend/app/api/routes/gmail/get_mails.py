@@ -1,3 +1,4 @@
+from api.routes.gmail.get_mail import get_email
 from fastapi import APIRouter, HTTPException
 from googleapiclient.errors import HttpError
 from typing import List, Dict, Any
@@ -19,8 +20,8 @@ async def _get_messages_list_metadata(service, label_ids, max_results=500, page_
         # Get messages from inbox
         results = service.users().messages().list(
             userId="me",
-            labelIds=["INBOX"],
-            maxResults=500
+            labelIds=label_ids,
+            maxResults=max_results
         ).execute()
 
         messages_metadata += results.get("messages", [])
@@ -30,8 +31,8 @@ async def _get_messages_list_metadata(service, label_ids, max_results=500, page_
         while next_page_token:
             results = service.users().messages().list(
                 userId="me",
-                labelIds=["INBOX"],
-                maxResults=500,
+                labelIds=label_ids,
+                maxResults=max_results,
                 pageToken=next_page_token
             ).execute()
 
@@ -62,7 +63,6 @@ async def _get_message_data_from_metadata(session, service, message_metadata):
     url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{message_metadata['id']}"
     params = {
         "format": "full",
-        "metadataHeaders": ["From", "Subject", "Date"]
     }
     headers = {
         "Authorization": f"Bearer {service._http.credentials.token}"
@@ -78,48 +78,9 @@ async def _get_message_data_from_metadata(session, service, message_metadata):
                     userId="me",
                     id=message_metadata["id"],
                     format="full",
-                    metadataHeaders=["From", "Subject", "Date"]
                 ).execute()
 
-        # Check if payload and headers exist in the response
-        headers = []
-        if "payload" in msg:
-            if "headers" in msg["payload"]:
-                headers = msg["payload"]["headers"]
-            # If headers are in a different location, try to find them
-            elif "parts" in msg["payload"] and len(msg["payload"]["parts"]) > 0:
-                for part in msg["payload"]["parts"]:
-                    if "headers" in part:
-                        headers.extend(part["headers"])
-
-        if not headers:
-            print(
-                f"Warning: Headers missing in message {message_metadata['id']}")
-            print(f"Message structure: {msg.keys()}")
-            if "payload" in msg:
-                print(f"Payload structure: {msg['payload'].keys()}")
-
-        from_value = ""
-        subject_value = ""
-        date_value = ""
-
-        for header in headers:
-            if header.get("name") == "From":
-                from_value = header.get("value", "")
-            elif header.get("name") == "Subject":
-                subject_value = header.get("value", "")
-            elif header.get("name") == "Date":
-                date_value = header.get("value", "")
-
-        email_data = {
-            "id": msg["id"],
-            "threadId": msg.get("threadId", ""),
-            "from": from_value,
-            "subject": subject_value,
-            "date": date_value,
-            "snippet": msg.get("snippet", ""),
-            "labels": msg.get("labelIds", [])
-        }
+        email_data = get_email(msg)["data"]
     except Exception as e:
         print(f"Error processing message {message_metadata['id']}: {str(e)}")
         # Return minimal data in case of error

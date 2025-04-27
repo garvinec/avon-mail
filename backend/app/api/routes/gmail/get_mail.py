@@ -6,8 +6,7 @@ from .utils import get_read_gmail_service
 router = APIRouter()
 
 
-@router.get("/email/{message_id}")
-async def get_email_by_id(message_id: str) -> Dict[str, Any]:
+def get_email(message: Dict[str, Any]) -> Dict[str, Any]:
     """
     Get detailed information about a specific email using its message ID.
 
@@ -18,15 +17,6 @@ async def get_email_by_id(message_id: str) -> Dict[str, Any]:
         Dict containing email details including subject, sender, body, etc.
     """
     try:
-        service = get_read_gmail_service()
-
-        # Get the full message details
-        message = service.users().messages().get(
-            userId="me",
-            id=message_id,
-            format="full"
-        ).execute()
-
         # Extract headers
         headers = message["payload"]["headers"]
         email_data = {
