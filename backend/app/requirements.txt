@@ -54,7 +54,7 @@ pycares==4.6.0
 pycparser==2.22
 pydantic==2.10.6
 pydantic_core==2.27.2
-PyJWT==2.10.1
+PyJWT==2.12.0
 pyparsing==3.2.1
 python-dotenv==1.1.0
 PyYAML==6.0.2
